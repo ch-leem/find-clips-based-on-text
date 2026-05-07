@@ -18,6 +18,17 @@
 
 ![intro pipeline](img/04_intro_pipeline.png)
 
+## 0. 주요 성과
+
+- YouTube-8M Movieclips 기반 1,218개 영상 데이터 수집 및 분석
+- Tarsier-7B 기반 클립별 캡션 생성 파이프라인 구축
+- 서버 4대를 활용한 GPU 분산 처리로 캡셔닝 처리 속도 개선
+- all-mpnet-base-v2 기반 문장 임베딩 및 검색 DB 구축
+- 캡션-쿼리 쌍 429개를 활용한 임베딩 모델 fine-tuning
+- Recall@1 기준 Base 19.25%에서 Trained 20.86%로 개선
+- 최종 DB에서 Trained model + 3s + 5s + 7s 조합으로 Recall@1 21.39%, 평균 유사도 0.7696 달성
+- Video to Text, Text to Video Web Demo 구현
+
 ## 2. 팀 구성 및 역할
 
 | 이름 | 역할 |
@@ -60,12 +71,6 @@ Video to Text 파이프라인은 입력된 비디오 정보, video id와 timesta
 
 ![caption qualitative evaluation](img/14_caption_eval_qualitative.png)
 
-| 모델 | 정확성 ↑ | 포괄성 ↑ | 간결성 ↑ | 평균 ↑ | 소요시간, 초 ↓ |
-|---|---:|---:|---:|---:|---:|
-| mPLUG-Owl3 | 1.4 | 1.0 | 2.0 | 1.3 | 5.43 |
-| InternLM-XComposer | 3.4 | 4.8 | 4.0 | 4.13 | 29.37 |
-| Tarsier-7B | 4.2 | 4.2 | 4.8 | 4.3 | 6.76 |
-
 Tarsier-7B는 정성 평가 평균이 가장 높고, 소요 시간도 상대적으로 짧아 최종 캡셔닝 모델로 선택했습니다.
 
 ![caption model evaluation](img/15_caption_model_eval.png)
@@ -106,12 +111,6 @@ Text to Video 파이프라인은 생성된 캡션을 문장 임베딩으로 변�
 
 Tarsier-7B로 생성된 캡션을 기준으로 187개의 캡션-쿼리 쌍을 직접 작성하고, 각 쿼리에 대해 정답 캡션이 Top N 결과 안에 포함되는지 평가했습니다.
 
-| 모델 | Recall@20 ↑ | 평균 유사도 ↑ | 평균 순위 ↓ |
-|---|---:|---:|---:|
-| stella-en-1.5B-v5 | 24.06% | 0.6397 | 4.72 |
-| all-MiniLM-L6-v2 | 48.66% | 0.5983 | 5.64 |
-| all-mpnet-base-v2 | 50.80% | 0.6284 | 4.71 |
-
 all-mpnet-base-v2는 Recall@20과 평균 순위가 가장 좋아 최종 임베딩 모델로 선택했습니다.
 
 ![embedding model evaluation](img/24_embedding_model_eval.png)
@@ -121,11 +120,6 @@ all-mpnet-base-v2는 Recall@20과 평균 순위가 가장 좋아 최종 임베�
 검색 성능을 높이기 위해 all-mpnet-base-v2를 프로젝트 데이터셋에 맞게 fine-tuning했습니다.
 
 Tarsier-7B로 생성된 캡션을 기반으로 429개의 캡션-쿼리 쌍을 만들고, 이를 Positive Sample로 활용해 학습했습니다.
-
-| 모델 | Recall@3 ↑ | Recall@1 ↑ | 평균 유사도 ↑ |
-|---|---:|---:|---:|
-| Base | 27.81% | 19.25% | 0.6612 |
-| Trained | 34.22% | 20.86% | 0.7467 |
 
 Fine-tuning 결과 Recall@3은 약 7%p, Recall@1은 약 1%p 상승했고 평균 유사도는 약 15% 증가했습니다.
 
@@ -144,15 +138,6 @@ Fine-tuning 결과 Recall@3은 약 7%p, Recall@1은 약 1%p 상승했고 평균 
 
 ![video split pipeline](img/26_video_split_pipeline.png)
 
-| Split Method | Recall@1 ↑ | Recall@5 ↑ | Recall@10 ↑ | Recall@15 ↑ | Recall@20 ↑ |
-|---|---:|---:|---:|---:|---:|
-| PySceneDetect Content | 22.99 | 48.66 | 56.68 | 62.57 | 64.17 |
-| PySceneDetect Adaptive | 25.13 | 47.59 | 58.29 | 63.64 | 66.31 |
-| OpenCV | 25.67 | 48.13 | 57.22 | 63.10 | 65.24 |
-| FFmpeg 3s | 29.95 | 54.55 | 64.71 | 70.05 | 74.33 |
-| FFmpeg 5s | 26.74 | 52.94 | 65.24 | 73.80 | 75.40 |
-| FFmpeg 7s | 28.34 | 52.41 | 64.17 | 67.38 | 71.12 |
-
 실험 결과, 장면 감지 기반 분할보다 FFmpeg를 이용한 단순 시간 단위 분할이 더 높은 검색 성능을 보였습니다.
 
 ![split method evaluation](img/28_split_method_eval.png)
@@ -160,15 +145,6 @@ Fine-tuning 결과 Recall@3은 약 7%p, Recall@1은 약 1%p 상승했고 평균 
 ## 12. 최종 DB 성능
 
 최종 DB는 모든 실험 결과를 반영해 구축했습니다. 1,218개 전체 영상에 대해 3초, 5초, 7초 분할 조합과 fine-tuned embedding model을 적용했습니다.
-
-| DB 비디오 종류 | Embedding Model | Split Time | Recall@1 ↑ | 평균 유사도 |
-|---|---|---|---:|---:|
-| 108, test | all-MiniLM-L6-v2 | 3s + 5s | 33.69 | 0.6509 |
-| 108, test | all-MiniLM-L6-v2 | 3s + 5s + 7s | 35.29 | 0.6577 |
-| 1218, All | all-MiniLM-L6-v2 | 3s + 5s | 14.44 | 0.6578 |
-| 1218, All | all-mpnet-base-v2 | 3s + 5s | 19.25 | 0.6612 |
-| 1218, All | Trained model | 3s + 5s | 20.86 | 0.7683 |
-| 1218, All | Trained model | 3s + 5s + 7s | 21.39 | 0.7696 |
 
 최종적으로 fine-tuned embedding model과 3s + 5s + 7s DB 조합에서 가장 높은 Recall@1과 평균 유사도를 얻었습니다.
 
@@ -197,17 +173,6 @@ Video to Text와 Text to Video 기능을 웹 데모로 구현해 파이프라인
 
 ![text to video demo](img/33_text_to_video_demo.png)
 
-## 15. 주요 성과
-
-- YouTube-8M Movieclips 기반 1,218개 영상 데이터 수집 및 분석
-- Tarsier-7B 기반 클립별 캡션 생성 파이프라인 구축
-- 서버 4대를 활용한 GPU 분산 처리로 캡셔닝 처리 속도 개선
-- all-mpnet-base-v2 기반 문장 임베딩 및 검색 DB 구축
-- 캡션-쿼리 쌍 429개를 활용한 임베딩 모델 fine-tuning
-- Recall@1 기준 Base 19.25%에서 Trained 20.86%로 개선
-- 최종 DB에서 Trained model + 3s + 5s + 7s 조합으로 Recall@1 21.39%, 평균 유사도 0.7696 달성
-- Video to Text, Text to Video Web Demo 구현
-
-## 16. 개선 가능성
+## 15. 개선 가능성
 
 실제 서비스 환경에서는 오디오 캡셔닝과 자막 정보를 함께 활용하면 영상 검색 품질을 높일 수 있습니다. 또한 등장인물 이름 기반 검색을 위해 인물 인식 모델을 추가하거나, self-supervised learning 기반으로 캡션 및 임베딩 모델을 추가 학습하는 방향을 고려할 수 있습니다.
