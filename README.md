@@ -4,6 +4,8 @@
 > 주제, 장면 탐색을 위한 Video to Text / Text to Video 모델  
 > 부제, Find the clips you want: Based on text
 
+> [프로젝트 리포트](프로젝트리포트.pdf)
+
 ![cover](img/01_cover.png)
 
 ## 1. 프로젝트 개요
